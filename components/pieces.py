@@ -20,6 +20,10 @@ B_P3 = pygame.image.load(os.path.join("images", "B-P3.png"))
 A = [A_H1, A_H2, A_P1, A_P2, A_P3]
 B = [B_H1, B_H2, B_P1, B_P2, B_P3]
 
+# Names
+A_names = ["A_H1", "A_H2", "A_P1", "A_P2", "A_P3"]
+B_names = ["B_H1", "B_H2", "B_P1", "B_P2", "B_P3"]
+
 
 # Resize images:
 def resize(img):
@@ -98,8 +102,18 @@ class Hero1(Piece):
     def __init__(self, row, col, player):
         super().__init__(row, col, player)
 
+    def get_name(self):
+        if self.player == "A":
+            arr = A_names
+        else:
+            arr = B_names
+        return arr[self.img]
+
     def get_moves(self):
         return [[0, -2], [0, 2], [2, 0], [-2, 0]]
+
+    def get_text(self):
+        return ["L", "R", "F", "B"]
 
     def valid_moves(self, board):
         i, j = self.row, self.col
@@ -123,8 +137,18 @@ class Hero2(Piece):
     def __init__(self, row, col, player):
         super().__init__(row, col, player)
 
+    def get_name(self):
+        if self.player == "A":
+            arr = A_names
+        else:
+            arr = B_names
+        return arr[self.img]
+
     def get_moves(self):
-        return [[2, -2], [-2, 2], [2, 2], [-2, -2]]
+        return [[2, -2], [2, 2], [-2, -2], [-2, 2]]
+
+    def get_text(self):
+        return ["FL", "FR", "BL", "BR"]
 
     def valid_moves(self, board):
         i, j = self.row, self.col
@@ -148,6 +172,9 @@ class Pawn(Piece):
     def get_moves(self):
         return [[0, -1], [0, 1], [1, 0], [-1, 0]]
 
+    def get_text(self):
+        return ["L", "R", "F", "B"]
+
     def valid_moves(self, board):
         i, j = self.row, self.col
         moves = []
@@ -167,10 +194,31 @@ class Pawn(Piece):
 class Pawn1(Pawn):
     img = 2
 
+    def get_name(self):
+        if self.player == "A":
+            arr = A_names
+        else:
+            arr = B_names
+        return arr[self.img]
+
 
 class Pawn2(Pawn):
     img = 3
 
+    def get_name(self):
+        if self.player == "A":
+            arr = A_names
+        else:
+            arr = B_names
+        return arr[self.img]
+
 
 class Pawn3(Pawn):
     img = 4
+
+    def get_name(self):
+        if self.player == "A":
+            arr = A_names
+        else:
+            arr = B_names
+        return arr[self.img]

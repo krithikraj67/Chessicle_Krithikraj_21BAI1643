@@ -9,7 +9,6 @@ BOARD = pygame.transform.scale(
     pygame.image.load(os.path.join("images", "board.png")), (700, 700)
 )
 rect = (60, 40, 687, 685)
-
 bo = Board()
 
 
@@ -37,6 +36,19 @@ def click(pos):
         i = math.floor(divX / (rect[2] / 5))
         j = math.floor(divY / (rect[3] / 5))
         return "s", j, i
+
+    elif bo.in_setup:
+        if 160 <= x < 248 and 830 <= y < 880:
+            return "a", "A-H1", None
+        elif 258 <= x < 346 and 830 <= y < 880:
+            return "a", "A-H2", None
+        elif 356 <= x < 444 and 830 <= y < 880:
+            return "a", "A-P1", None
+        elif 454 <= x < 542 and 830 <= y < 880:
+            return "a", "A-P2", None
+        elif 552 <= x < 640 and 830 <= y < 880:
+            return "a", "A-P3", None
+        return "n", -1, -1
 
     else:
         if 170 <= x < 270 and 830 <= y < 880:
@@ -69,9 +81,11 @@ def main():
                     bo.select(i, j)
                 elif ch == "m":
                     bo.move(i)
+                elif ch == "a":
+                    bo.add(i)
 
 
-SCREEN_WIDTH = 800
+SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 1000
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Chessicle")
