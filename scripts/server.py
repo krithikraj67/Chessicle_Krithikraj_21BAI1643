@@ -26,11 +26,14 @@ s.listen(2)
 print("Waiting for connection...")
 
 bo = Board()
+token = ["A", "B"]
+num = 0
 
 
 def threaded_client(conn):
-    global bo
-    conn.send(pickle.dumps(bo))
+    global bo, num
+    conn.send(str.encode(token[num % 2]))
+    num += 1
 
     while True:
         try:
@@ -39,13 +42,9 @@ def threaded_client(conn):
                 break
             reply = pickle.loads(data)
             if reply == 700:
-                print("Sending board")
-                print(bo)
                 conn.send(pickle.dumps(bo))
             else:
                 bo = reply
-                print("Received board.")
-                print("Sending board...")
                 conn.sendall(data)
         except:
             print(e)

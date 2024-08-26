@@ -56,13 +56,13 @@ class Piece:
     def isSelected(self):
         return self.selected
 
-    def draw(self, screen, board):
+    def draw(self, screen, board, player):
         if self.player == "A":
             drawThis = A[self.img]
         else:
             drawThis = B[self.img]
 
-        if self.selected:
+        if self.selected and player == self.player:
             moves = self.valid_moves(board)
 
             for r, c in moves:

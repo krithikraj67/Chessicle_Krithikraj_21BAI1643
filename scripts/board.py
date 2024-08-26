@@ -1,6 +1,5 @@
 from pieces import Hero1, Hero2, Pawn1, Pawn2, Pawn3
 from move_panel import Panel
-from arrange_panel import ArrangePanel
 from move_log import MoveLog
 from collections import deque
 
@@ -15,7 +14,7 @@ class Board:
         self.moves = []
         self.in_setup = True
         self.order_A = []
-        self.order_B = ["B-P1", "B-P2", "B-H1", "B-H2", "B-P3"]
+        self.order_B = []
         self.board = [[None] * self.cols for _ in range(self.rows)]
         self.logs = deque()
         self.pieces = {
@@ -23,6 +22,7 @@ class Board:
             "B": 5,
         }
         self.gameOver = False
+        self.winner = None
 
         # Networking
         self.turn = "A"
@@ -37,22 +37,21 @@ class Board:
         for i, x in enumerate(self.order_B):
             self.board[4][i] = self.getPiece(x, 4, i)
 
-    def add(self, idx):
+    def add(self, idx, player):
         """
         Adds a piece to the initial line up of the player board
 
         """
-        if self.turn == "A":
+        if self.turn != player:
+            return
+        if player == "A":
             if idx in self.order_A:
                 return
             self.order_A.append(idx)
-        else:
+        elif player == "B":
             if idx in self.order_B:
                 return
             self.order_B.append(idx)
-        if len(self.order_A) == 5 and len(self.order_B):
-            self.in_setup = False
-            self.setup()
 
     def remove(self):
         """Resets initial order"""
@@ -76,7 +75,7 @@ class Board:
         elif key[2:] == "P3":
             return Pawn3(r, c, key[0])
 
-    def draw(self, screen):
+    def draw(self, screen, player):
         """
         Draws the board on the screen
 
@@ -86,7 +85,7 @@ class Board:
         for i in range(self.rows):
             for j in range(self.cols):
                 if self.board[i][j]:
-                    self.board[i][j].draw(screen, self.board)
+                    self.board[i][j].draw(screen, self.board, player)
         if not self.in_setup:
             # Move panel
             if self.active[0] == -1 or self.active[1] == -1:
@@ -96,10 +95,6 @@ class Board:
                 return
             panel = Panel()
             panel.draw(active, screen)
-        else:
-            # Setup Panel
-            panel = ArrangePanel()
-            panel.draw(screen, self.order_A)
 
         self.draw_move_log(screen)
 
@@ -134,7 +129,7 @@ class Board:
         # Set selected cell as active
         self.active = (r, c)
 
-    def move(self, ind):
+    def move(self, ind, player):
         """
         Moves selected piece to the given position
         """
@@ -143,7 +138,7 @@ class Board:
         curr = self.board[start[0]][start[1]]
 
         # Return if no active sqares, or starting square is empty
-        if start == (-1, -1) or not curr:
+        if start == (-1, -1) or not curr or player != self.turn:
             return
 
         # Unselect starting square
@@ -170,7 +165,7 @@ class Board:
             self.pieces[self.board[end[0]][end[1]].player] -= 1
             if self.pieces[self.board[end[0]][end[1]].player] == 0:
                 self.gameOver = True
-                return curr.player
+                self.winner = curr.player
         self.board[end[0]][end[1]] = curr
         self.board[end[0]][end[1]].set_location(end)
         int_x = int((start[0] + end[0]) / 2)
@@ -183,7 +178,7 @@ class Board:
                 self.board[int_x][int_y] = None
                 if self.pieces[self.board[end[0]][end[1]].player] == 0:
                     self.gameOver = True
-                    return curr.player
+                    self.winner = curr.player
 
         # Remove piece from starting position
         self.board[start[0]][start[1]] = None

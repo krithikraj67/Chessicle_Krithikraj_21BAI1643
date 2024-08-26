@@ -2,18 +2,21 @@ import pygame
 import os
 import math
 from client import Network
+from arrange_panel import ArrangePanel
+from winner import Winner
 
 # Board image:
 BOARD = pygame.transform.scale(
     pygame.image.load(os.path.join("images", "board.png")), (700, 700)
 )
+GAMEOVER = pygame.transform.scale(
+    pygame.image.load(os.path.join("images", "gameover.png")), (700, 400)
+)
 rect = (60, 40, 687, 685)
-
-turn = "A"
 
 
 def redraw_gameWindow():
-    global screen
+    global screen, bo
     screen.blit(
         BOARD,
         (
@@ -21,7 +24,20 @@ def redraw_gameWindow():
             30,
         ),
     )
-    bo.draw(screen)
+    bo.draw(screen, client.turn)
+    if bo.in_setup:
+        # Setup Panel
+        panel = ArrangePanel()
+        order = bo.order_A if client.turn == "A" else bo.order_B
+        panel.draw(screen, order, client.turn)
+        if len(bo.order_A) == 5:
+            bo.turn = "B"
+        if len(bo.order_B) == 5:
+            bo.in_setup = False
+            bo.setup()
+            bo.turn = "A"
+            bo.draw_move_log(screen)
+            bo = client.send(bo)
     pygame.display.update()
 
 
@@ -38,19 +54,20 @@ def click(pos):
         return "s", j, i
 
     elif bo.in_setup:
+        piece = None
         if 160 <= x < 248 and 790 <= y < 840:
-            return "a", "A-H1", None
+            piece = "A-H1" if client.turn == "A" else "B-H1"
         elif 258 <= x < 346 and 790 <= y < 840:
-            return "a", "A-H2", None
+            piece = "A-H2" if client.turn == "A" else "B-H2"
         elif 356 <= x < 444 and 790 <= y < 840:
-            return "a", "A-P1", None
+            piece = "A-P1" if client.turn == "A" else "B-P1"
         elif 454 <= x < 542 and 790 <= y < 840:
-            return "a", "A-P2", None
+            piece = "A-P2" if client.turn == "A" else "B-P2"
         elif 552 <= x < 640 and 790 <= y < 840:
-            return "a", "A-P3", None
+            piece = "A-P3" if client.turn == "A" else "B-P3"
         elif 356 <= x < 451 and 875 <= y < 935:
             return "c", None, None
-        return "n", -1, -1
+        return "a", piece, None
 
     else:
         if 170 <= x < 270 and 830 <= y < 880:
@@ -70,13 +87,39 @@ def connect():
     return client.board, client
 
 
+def draw_GameOver():
+    global screen
+    run = True
+    while run:
+        screen.blit(
+            GAMEOVER,
+            (
+                180,
+                130,
+            ),
+        )
+        winner = Winner(bo.winner)
+        winner.draw(screen)
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+                pygame.quit()
+                quit()
+
+
 def main():
-    global turn, bo
+    global bo
     clock = pygame.time.Clock()
     run = True
     while run:
-        if turn != bo.turn:
+        if bo.gameOver:
+            break
+        if client.turn != bo.turn:
             bo = client.send(700)
+        else:
+            bo = client.send(bo)
         clock.tick(10)
         redraw_gameWindow()
 
@@ -92,13 +135,16 @@ def main():
                 if ch == "s":
                     bo.select(i, j)
                 elif ch == "m":
-                    winner = bo.move(i)
+                    bo.move(i, client.turn)
+                    bo.draw_move_log(screen)
                     if bo.gameOver:
-                        print(f"{winner} wins!!")
-                elif ch == "a":
-                    bo.add(i)
+                        bo = client.send(bo)
+                elif ch == "a" and i:
+                    bo.add(i, client.turn)
                 elif ch == "c":
                     bo.remove()
+                bo = client.send(bo)
+    draw_GameOver()
 
 
 SCREEN_WIDTH = 1000

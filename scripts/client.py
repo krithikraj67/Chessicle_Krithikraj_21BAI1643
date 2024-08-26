@@ -8,11 +8,16 @@ class Network:
         self.host = host
         self.port = port
         self.addr = (self.host, self.port)
-        self.board = pickle.loads(self.connect())
+        self.turn = self.connect()
+        self.board = self.send(700)
 
     def connect(self):
-        self.client.connect(self.addr)
-        return self.client.recv(2048)
+        try:
+            self.client.connect(self.addr)
+            # print(f"Connecting to {self.host} : {self.port}")
+            return self.client.recv(2048).decode("utf-8")
+        except socket.error as e:
+            print(e)
 
     def send(self, data):
         try:
@@ -22,6 +27,3 @@ class Network:
             return reply
         except socket.error as e:
             return str(e)
-
-
-client = Network()
