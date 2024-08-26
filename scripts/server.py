@@ -52,6 +52,7 @@ def threaded_client(conn):
 
     print("Connection closed")
     conn.close()
+    num -= 1
 
 
 while True:
