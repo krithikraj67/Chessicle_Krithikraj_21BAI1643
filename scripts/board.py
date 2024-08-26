@@ -1,7 +1,7 @@
-import pygame
 from pieces import Hero1, Hero2, Pawn1, Pawn2, Pawn3
 from move_panel import Panel
 from arrange_panel import ArrangePanel
+from move_log import MoveLog
 from collections import deque
 
 
@@ -9,6 +9,8 @@ class Board:
     def __init__(self):
         self.rows = 5
         self.cols = 5
+
+        # Gameplay
         self.active = (-1, -1)
         self.moves = []
         self.in_setup = True
@@ -16,11 +18,19 @@ class Board:
         self.order_B = ["B-P1", "B-P2", "B-H1", "B-H2", "B-P3"]
         self.board = [[None] * self.cols for _ in range(self.rows)]
         self.logs = deque()
+        self.pieces = {
+            "A": 5,
+            "B": 5,
+        }
+        self.gameOver = False
 
-        pygame.font.init()
-        self.font = pygame.font.Font(None, 32)
+        # Networking
+        self.turn = "A"
 
     def setup(self):
+        """
+        Populates the board with initial characters
+        """
         for i, x in enumerate(self.order_A):
             self.board[0][i] = self.getPiece(x, 0, i)
 
@@ -28,14 +38,33 @@ class Board:
             self.board[4][i] = self.getPiece(x, 4, i)
 
     def add(self, idx):
-        if idx in self.order_A:
-            return
-        self.order_A.append(idx)
-        if len(self.order_A) == 5:
+        """
+        Adds a piece to the initial line up of the player board
+
+        """
+        if self.turn == "A":
+            if idx in self.order_A:
+                return
+            self.order_A.append(idx)
+        else:
+            if idx in self.order_B:
+                return
+            self.order_B.append(idx)
+        if len(self.order_A) == 5 and len(self.order_B):
             self.in_setup = False
             self.setup()
 
+    def remove(self):
+        """Resets initial order"""
+        if self.turn == "A":
+            self.order_A = []
+        else:
+            self.order_B = []
+
     def getPiece(self, key, r, c):
+        """
+        Returns an instance of the Piece class, under corresponding sub-class
+        """
         if key[2:] == "H1":
             return Hero1(r, c, key[0])
         elif key[2:] == "H2":
@@ -48,6 +77,11 @@ class Board:
             return Pawn3(r, c, key[0])
 
     def draw(self, screen):
+        """
+        Draws the board on the screen
+
+        """
+
         # Playing board
         for i in range(self.rows):
             for j in range(self.cols):
@@ -65,40 +99,78 @@ class Board:
         else:
             # Setup Panel
             panel = ArrangePanel()
-            panel.draw(screen)
+            panel.draw(screen, self.order_A)
 
+        self.draw_move_log(screen)
+
+    def draw_move_log(self, screen):
+        """
+        Draws the move log
+        """
         # Move Log
-        logStartX, logStartY = 780, 40
-        pygame.draw.rect(screen, (100, 100, 100), (logStartX, logStartY, 200, 940))
-        for ind, log in enumerate(self.logs):
-            move_text = self.font.render(log, True, (255, 255, 255))
-            text_position = (logStartX + 60, logStartY + 20 + ind * 40)
-            screen.blit(move_text, text_position)
+        move_log = MoveLog(780, 40)
+        move_log.draw(screen, self.logs, self.turn)
 
     def select(self, r, c):
+        """
+        Selects the given piece
+        """
+        # Return if selected cell is empty or opponent's piece
+        if self.board[r][c] and self.board[r][c].player != self.turn:
+            return
+
+        # Get active piece
         x, y = self.active
+
+        # Unselect previously selected cell
         if x != -1 and y != -1 and self.board[x][y]:
             self.board[x][y].selected = False
+
+        # Select the selected cell and get it's valid moves
         if self.board[r][c]:
             self.board[r][c].selected = True
             self.moves = self.board[r][c].valid_moves(self.board)
+
+        # Set selected cell as active
         self.active = (r, c)
 
     def move(self, ind):
+        """
+        Moves selected piece to the given position
+        """
+        # Get active square and save it
         start = self.active
         curr = self.board[start[0]][start[1]]
+
+        # Return if no active sqares, or starting square is empty
         if start == (-1, -1) or not curr:
             return
+
+        # Unselect starting square
         curr.selected = False
+
+        # Get the chosen move
         delta = curr.get_moves()[ind]
         end = (start[0] + delta[0], start[1] + delta[1])
+
+        # Return if move is not valid
         if not end in self.moves:
             return
 
+        # Log the move in a queue. Remove least recent addition if too long
         self.logs.append(curr.get_name() + ":" + curr.get_text()[ind])
         if len(self.logs) == 15:
             self.logs.popleft()
 
+        # Shift the piece according to chosen move (Implicitly capture enemy pieces)
+        if (
+            self.board[end[0]][end[1]]
+            and self.board[end[0]][end[1]].player != curr.player
+        ):
+            self.pieces[self.board[end[0]][end[1]].player] -= 1
+            if self.pieces[self.board[end[0]][end[1]].player] == 0:
+                self.gameOver = True
+                return curr.player
         self.board[end[0]][end[1]] = curr
         self.board[end[0]][end[1]].set_location(end)
         int_x = int((start[0] + end[0]) / 2)
@@ -109,5 +181,15 @@ class Board:
                 and self.board[int_x][int_y].player != curr.player
             ):
                 self.board[int_x][int_y] = None
-        curr = None
+                if self.pieces[self.board[end[0]][end[1]].player] == 0:
+                    self.gameOver = True
+                    return curr.player
+
+        # Remove piece from starting position
+        self.board[start[0]][start[1]] = None
+
+        # Change turn to the other player
+        self.turn = "B" if self.turn == "A" else "A"
+
+        # Deselect cells
         self.active = (-1, -1)

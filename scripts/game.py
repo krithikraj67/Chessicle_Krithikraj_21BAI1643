@@ -1,15 +1,15 @@
 import pygame
 import os
 import math
-from pieces import Piece
-from board import Board
+from client import Network
 
 # Board image:
 BOARD = pygame.transform.scale(
     pygame.image.load(os.path.join("images", "board.png")), (700, 700)
 )
 rect = (60, 40, 687, 685)
-bo = Board()
+
+turn = "A"
 
 
 def redraw_gameWindow():
@@ -38,16 +38,18 @@ def click(pos):
         return "s", j, i
 
     elif bo.in_setup:
-        if 160 <= x < 248 and 830 <= y < 880:
+        if 160 <= x < 248 and 790 <= y < 840:
             return "a", "A-H1", None
-        elif 258 <= x < 346 and 830 <= y < 880:
+        elif 258 <= x < 346 and 790 <= y < 840:
             return "a", "A-H2", None
-        elif 356 <= x < 444 and 830 <= y < 880:
+        elif 356 <= x < 444 and 790 <= y < 840:
             return "a", "A-P1", None
-        elif 454 <= x < 542 and 830 <= y < 880:
+        elif 454 <= x < 542 and 790 <= y < 840:
             return "a", "A-P2", None
-        elif 552 <= x < 640 and 830 <= y < 880:
+        elif 552 <= x < 640 and 790 <= y < 840:
             return "a", "A-P3", None
+        elif 356 <= x < 451 and 875 <= y < 935:
+            return "c", None, None
         return "n", -1, -1
 
     else:
@@ -62,12 +64,22 @@ def click(pos):
         return "n", -1, -1
 
 
+def connect():
+    client = Network()
+    client.send(client.board)
+    return client.board, client
+
+
 def main():
+    global turn, bo
     clock = pygame.time.Clock()
     run = True
     while run:
+        if turn != bo.turn:
+            bo = client.send(700)
         clock.tick(10)
         redraw_gameWindow()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -80,13 +92,18 @@ def main():
                 if ch == "s":
                     bo.select(i, j)
                 elif ch == "m":
-                    bo.move(i)
+                    winner = bo.move(i)
+                    if bo.gameOver:
+                        print(f"{winner} wins!!")
                 elif ch == "a":
                     bo.add(i)
+                elif ch == "c":
+                    bo.remove()
 
 
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 1000
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Chessicle")
+bo, client = connect()
 main()

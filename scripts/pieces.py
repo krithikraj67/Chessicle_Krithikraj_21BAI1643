@@ -1,6 +1,5 @@
 import pygame
 import os
-from itertools import pairwise
 
 # A pieces:
 A_H1 = pygame.image.load(os.path.join("images", "A-H1.png"))
@@ -63,13 +62,12 @@ class Piece:
         else:
             drawThis = B[self.img]
 
-        moves = self.valid_moves(board)
+        if self.selected:
+            moves = self.valid_moves(board)
 
-        for r, c in moves:
-            x = round(self.startX + (c * self.rect[2] / 5))
-            y = round(self.startY + (r * self.rect[3] / 5))
-
-            if self.selected:
+            for r, c in moves:
+                x = round(self.startX + (c * self.rect[2] / 5))
+                y = round(self.startY + (r * self.rect[3] / 5))
                 pygame.draw.rect(
                     screen,
                     (
@@ -110,6 +108,8 @@ class Hero1(Piece):
         return arr[self.img]
 
     def get_moves(self):
+        if self.player == "B":
+            return [[0, -2], [0, 2], [-2, 0], [2, 0]]
         return [[0, -2], [0, 2], [2, 0], [-2, 0]]
 
     def get_text(self):
@@ -118,9 +118,8 @@ class Hero1(Piece):
     def valid_moves(self, board):
         i, j = self.row, self.col
         moves = []
-        dirs = (-2, 0, 2, 0, -2)
 
-        for dr, dc in pairwise(dirs):
+        for dr, dc in self.get_moves():
             r, c = i + dr, j + dc
             if (
                 0 <= r < 5
@@ -145,6 +144,13 @@ class Hero2(Piece):
         return arr[self.img]
 
     def get_moves(self):
+        if self.player == "B":
+            return [
+                [-2, -2],
+                [-2, 2],
+                [2, -2],
+                [2, 2],
+            ]
         return [[2, -2], [2, 2], [-2, -2], [-2, 2]]
 
     def get_text(self):
@@ -170,6 +176,8 @@ class Pawn(Piece):
         super().__init__(row, col, player)
 
     def get_moves(self):
+        if self.player == "B":
+            return [[0, -1], [0, 1], [-1, 0], [1, 0]]
         return [[0, -1], [0, 1], [1, 0], [-1, 0]]
 
     def get_text(self):
@@ -178,9 +186,8 @@ class Pawn(Piece):
     def valid_moves(self, board):
         i, j = self.row, self.col
         moves = []
-        dirs = (-1, 0, 1, 0, -1)
 
-        for dr, dc in pairwise(dirs):
+        for dr, dc in self.get_moves():
             r, c = i + dr, j + dc
             if (
                 0 <= r < 5
